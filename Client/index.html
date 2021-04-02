@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Classement</title>
+		<meta charset="utf-8" lang="en"/> 
+    	<link rel="stylesheet" type="text/css" href="style.css">
+        <script>
+            function buildRanking(rep){
+                let ranking = []
+                for(let i = 0; i < rep.length; i++){
+                    let points = new Object() //Nombre de points de chaque équipe par matche
+                    if(rep[i]['score_guest'] > rep[i]['score_visitor']){
+                        points = {guest:3,visitor:0}
+                    }
+                    else if (rep[i]['score_guest'] < rep[i]['score_visitor']){
+                        points = {guest:0,visitor:3}
+                    }
+                    else{
+                        points = {guest:1,visitor:1}
+                    }
+                    //Ajout des points au total de chaque équipe
+                    let guest_index = ranking.findIndex(function(r){ return r['club'] === rep[i]['guest_name'] })
+                    let visitor_index = ranking.findIndex(function(r){ return r['club'] === rep[i]['visitor_name'] })
+                    if(guest_index > -1){
+                        ranking[guest_index]['points'] += parseInt(points.guest)
+                        ranking[guest_index]['mj']++;
+                        ranking[guest_index]['db'] += parseInt(rep[i]['score_guest'] - rep[i]['score_visitor'])
+                    }
+                    else{ //Si c'est la première fois qu'on trouve le club dans la boucle on insère son nom et son logo
+                        ranking.push({club:rep[i]['guest_name'],logo:rep[i]['guest_logo'],points:parseInt(points.guest),mj:1,db:parseInt(rep[i]['score_guest']-rep[i]['score_visitor'])})
+                    }
+                    if(visitor_index > -1){
+                        ranking[visitor_index]['points'] += parseInt(points.visitor)
+                        ranking[visitor_index]['mj']++;
+                        ranking[visitor_index]['db'] += parseInt(rep[i]['score_visitor'] - rep[i]['score_guest'])
+                    }
+                    else{ //Si c'est la première fois qu'on trouve le club dans la boucle on insère son nom et son logo
+                        ranking.push({club:rep[i]['visitor_name'],logo:rep[i]['visitor_logo'],points:parseInt(points.visitor),mj:1,db:parseInt(rep[i]['score_visitor']-rep[i]['score_guest'])})
+                    }
+                }
+                console.log("ranking = ",ranking)
+                var orderedRanking = ranking.sort((a,b)=>a.points<b.points)
+                console.log("orderedRanking = ",orderedRanking)
+                // Création de la liste HTML
+                let list = "<table style='width:100%;'>";
+                list += "<tr> <th> Rank </th> <th> Club </th> <th> Points </th> <th> Matches </th> <th> Différence de but </th> </tr>";
+                for(let i = 0; i < orderedRanking.length; i++){
+                    list += "<tr style='margin:24px' id='club"+orderedRanking[i]['club']+"'>";
+                    list += "<td> "+parseInt(i+1)+". </td>";
+                    list += "<td class='club'><img class='logo' width=36 height=36 alt='" + orderedRanking[i]['club'] + "' src='"+orderedRanking[i]['logo'] + "' /> "+orderedRanking[i]['club']+" </td>";
+                    list += "<td class='score'> "+ orderedRanking[i]['points']+" Pts </td>";
+                    list += "<td class='score'> "+orderedRanking[i]['mj']+" MJ </td>";
+                    list += "<td class='score'> "+orderedRanking[i]['db']+" </td>";
+                    list += "</tr>";
+                }
+                list += "</table>";
+                console.log("html = ",list)
+                document.querySelector("#content").innerHTML = list;
+            }
+        </script>
+	</head>
+
+    <body>
+        <div class="formul">
+            <input type="text" id="pays" />
+            <button id="envoyer">Calculer le classement:</button>
+        </div>
+        <div id="content" style="background-color:seagreen;color: beige;">
+
+        </div>
+        <script>
+            document.querySelector("#envoyer").addEventListener("click",async function(e){
+                var pays = document.querySelector("#pays").value;
+                document.querySelector("#content").innerHTML = "<h4> Loading... </h4>";
+                await fetch("http://localhost:8080/ige41/Révisions/ISW/Server/ListeMatche.php?pays="+pays)
+                .then(function(prm){
+                    if(prm.status===500){
+                        alert("Une erreur s'est produite sur le serveur!")
+                    }
+                    else if(prm.status===400){
+                        document.querySelector("#content").innerHTML = "<h3> Aucun matche pour le pays choisi! </h3>";
+                    }
+                    else{
+                        return prm.json().then(
+                            function(rep){
+                                buildRanking(rep)
+                            }
+                        )
+                    }
+                }).catch(function(err){
+                    alert("Une erreur a empêché l'éxecution de la requête")
+                });
+            })
+            
+        </script>
+    </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--
+    <script>
+        //Appel de l'API serveur pour récupérer les scores des matches
+        document.querySelector("#envoyer").addEventListener("click",function(e){
+            let pays = document.querySelector("#pays").value
+            fetch("http://localhost:8080/ige41/Révisions/ISW/Server/ListeMatche.php?pays="+pays)
+            .then(function(prm){
+                if(prm.status===400){
+                    document.querySelector("#content").innerHTML = "<h4> Pays "+pays+" introuvable !</h4>"
+                    return false
+                }
+                return prm.json().then(
+                    function(rep){
+                        buildRanking(rep)
+                    }
+                )
+            }).catch(function(err){
+                alert("Une erreur s'est produite "+err)
+            })            
+        })
+    </script>
+-->
